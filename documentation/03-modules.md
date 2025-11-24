@@ -37,6 +37,17 @@ Index of primary packages and key modules. Paths link to source and docs where a
 		- `environment_normalizer.py` — Environment normalization
 		- `security_extensions.py` — Advanced evasion detection and mitigation
 
+## Fuzzing Engine
+
+- **fuzzing** — EBP (Emulation-Based Protocol) fuzzer (docs: modules/dragonslayer/fuzzing/vm_fuzzer.md)
+	- `vm_fuzzer.py` — VM-aware fuzzer with taint guidance
+	- `base_fuzzer.py` — Abstract base for all fuzzers
+	- `mutation_engine.py` — Input mutation strategies (bit flip, arithmetic, havoc, etc.)
+	- `coverage_tracker.py` — Coverage-guided fuzzing with block and edge tracking
+	- `crash_analyzer.py` — Crash detection, deduplication, and exploitability assessment
+	- `corpus_manager.py` — Test case corpus management and minimization
+	- **Note**: This module addresses the missing implementation from previous presentations
+
 ## Machine Learning & Intelligence
 
 - **ml**

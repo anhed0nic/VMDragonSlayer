@@ -24,6 +24,7 @@ VMDragonSlayer is a comprehensive framework for analyzing binaries protected by 
 | Pattern Analysis | `analysis.pattern_analysis` | Rule-based + similarity + ML (hybrid auto-selection) |
 | Taint Tracking | `analysis.taint_tracking` | Intel Pin–driven byte-level taint, handler discovery, flow confidence |
 | Symbolic Execution | `analysis.symbolic_execution.executor` | PathPrioritizer ML-weighted exploration, constraint & state tracking |
+| **EBP Fuzzer** | `fuzzing.vm_fuzzer` | **VM-aware fuzzing with coverage guidance, crash triage, corpus management** |
 | Hybrid Orchestration | (Python core) | Sequential / parallel / adaptive workflows (Ghidra report indicates implemented) |
 | Synthetic Data | `data/training/synthetic_sample_generator.py` | Obfuscation mutation, multi-architecture sample generation |
 | Pattern DB | `data/patterns/` | JSON + enhanced DB + SQLite-backed runtime patterns |
@@ -90,6 +91,13 @@ graph TD
 - **Models**: Basic proof-of-concept models for research and education
 - **Components**: Feature extraction, model training, ensemble prediction
 
+#### 6. **EBP Fuzzer** (`dragonslayer.fuzzing`)
+- **Purpose**: Emulation-Based Protocol fuzzing for VM-protected binaries
+- **Techniques**: Mutation-based, generation-based, coverage-guided fuzzing
+- **Features**: VM-aware targeting, crash triage, corpus management
+- **Integration**: Uses taint tracking and symbolic execution for guided fuzzing
+- **Note**: This component was referenced in previous presentations but implementation was absent until now
+
 ## Repository Structure
 
 ```
@@ -101,6 +109,11 @@ VMDragonSlayer/
 │   │   ├── symbolic_execution/    # Symbolic execution engine
 │   │   ├── taint_tracking/        # Dynamic taint analysis
 │   │   └── anti_evasion/          # Anti-analysis countermeasures
+│   ├── fuzzing/                   # EBP fuzzer (previously missing)
+│   │   ├── vm_fuzzer.py          # VM-aware fuzzer implementation
+│   │   ├── mutation_engine.py    # Input mutation strategies
+│   │   ├── coverage_tracker.py   # Coverage-guided fuzzing
+│   │   └── crash_analyzer.py     # Crash detection and triage
 │   ├── api/                       # REST API server and client
 │   ├── core/                      # Core framework components
 │   ├── ml/                        # Machine learning pipeline
