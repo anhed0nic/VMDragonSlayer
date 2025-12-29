@@ -8,7 +8,7 @@ Use VM detection and taint analysis for guide fuzzing.
 This was the main missing piece from DefCon demo.
 """
 
-from typing import Dict, List, Set, Optional
+from typing import Dict, List, Optional
 import random
 import os
 
@@ -58,7 +58,12 @@ class VMFuzzer(BaseFuzzer):
         
         # Advanced integration (if enable)
         self.symbolic_bridge = SymbolicFuzzingBridge() if config.enable_symbolic else None
-        self.taint_mutator = TaintGuidedMutator() if config.enable_taint else None
+        if config.enable_taint:
+            self.taint_mutator = TaintGuidedMutator()
+            self.vm_taint_fuzzer = VMTaintFuzzer(self.taint_mutator)
+        else:
+            self.taint_mutator = None
+            self.vm_taint_fuzzer = None
         # Performance optimization (if parallel enable)
         if config.parallel_jobs > 1:
             self.parallel_fuzzer = ParallelFuzzer(config.parallel_jobs)
@@ -190,7 +195,32 @@ class VMFuzzer(BaseFuzzer):
             for block_id in result['coverage']:
                 self.coverage_tracker.record_block(block_id)
         
+        if self.config.enable_taint and self.taint_mutator:
+            result = self._apply_taint_feedback(result, input_data)
+        
         return result
+
+    def _apply_taint_feedback(self, execution_result: Dict, input_data: bytes) -> Dict:
+        """Attach taint hints to execution result for downstream consumers."""
+        coverage_hint = execution_result.get('coverage') or set()
+        if not isinstance(coverage_hint, set):
+            try:
+                coverage_hint = set(coverage_hint)
+            except TypeError:
+                coverage_hint = set()
+        taint_info = self.taint_mutator.track_execution(input_data, coverage_hint)
+        execution_result['taint_flow'] = [{
+            'tainted_bytes': sorted(list(taint_info.tainted_bytes)),
+            'influence_branches': sorted(list(taint_info.influence_branches)),
+            'operations': list(taint_info.influence_operations),
+        }]
+        if execution_result.get('crashed'):
+            crash_details = dict(execution_result.get('crash_info', {}))
+            if coverage_hint:
+                crash_details['coverage'] = sorted(list(coverage_hint))
+            crash_details['taint_analysis'] = self.taint_mutator.analyze_crash_taint(crash_details, input_data)
+            execution_result['crash_info'] = crash_details
+        return execution_result
         
     def check_crash(self, execution_result: Dict) -> bool:
         """
@@ -214,19 +244,7 @@ class VMFuzzer(BaseFuzzer):
         This use taint analysis to track data flow.
         Help identify which input byte affect which code.
         """
-        if not self.config.enable_taint:
-            return self.execute_target(input_data)
-            
-        # Real implementation would:
-        # - Initialize taint tracker
-        # - Mark input as tainted
-        # - Track propagation through VM
-        # - Identify interesting taint flow
-        
-        result = self.execute_target(input_data)
-        result['taint_flow'] = []
-        
-        return result
+        return self.execute_target(input_data)
         
     def fuzz(self, target_path: str, initial_corpus: List[bytes] = None,
              delivery_method: str = 'stdin') -> FuzzResult:

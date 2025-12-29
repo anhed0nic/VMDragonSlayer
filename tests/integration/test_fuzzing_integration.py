@@ -29,6 +29,12 @@ from dragonslayer.fuzzing import (
     NetworkFuzzer,
     NetworkTarget,
 )
+from dragonslayer.core import (
+    Orchestrator,
+    AnalysisRequest,
+    AnalysisType,
+)
+import asyncio
 
 
 def test_full_fuzzer_integration():
@@ -324,3 +330,82 @@ def test_crash_deduplication():
     
     analyzer.analyze_crash(crash_info3, b"input3")
     assert analyzer.get_unique_crash_count() == 2
+
+
+def test_orchestrator_hybrid_plan():
+    """Ensure orchestrator builds hybrid plan without executing binaries."""
+    orchestrator = Orchestrator({"fuzzing": {"max_iterations": 16}})
+    request = AnalysisRequest(
+        binary_path="nonexistent_vm_binary.exe",
+        analysis_type=AnalysisType.HYBRID,
+        seed_inputs=[b"seed"],
+        options={"target_branches": [0x1000, 0x2000]},
+    )
+
+    result = asyncio.run(orchestrator.execute_analysis(request))
+
+    assert result.success is True
+    assert "pipeline" in result.results
+    assert any(step["name"] == "taint_guided_mutation" for step in result.results["pipeline"])
+    assert "stages" in result.results
+    assert any(stage["name"] == "taint_guided_mutation" for stage in result.results["stages"])
+    assert any(stage["name"] == "symbolic_guidance" for stage in result.results["stages"])
+    assert "dictionary_preview" in result.results
+
+
+def test_orchestrator_hybrid_simulation():
+    """Ensure optional hybrid simulation returns structured preview."""
+    orchestrator = Orchestrator({"fuzzing": {"max_iterations": 8}})
+    request = AnalysisRequest(
+        binary_path="nonexistent_vm_binary.exe",
+        analysis_type=AnalysisType.HYBRID,
+        seed_inputs=[b"seedA", b"seedB"],
+        options={
+            "target_branches": [0x3000],
+            "simulate_execution": True,
+            "preview_iterations": 2,
+        },
+    )
+
+    result = asyncio.run(orchestrator.execute_analysis(request))
+
+    preview = result.results.get("execution_preview")
+    assert preview is not None
+    assert preview["stats"]["total_cases"] <= 2
+    assert preview["stats"]["seed_cases"] >= 1
+    assert preview["stats"]["inputs_considered"] >= preview["stats"]["total_cases"]
+    assert isinstance(preview["iterations"], list) and preview["iterations"]
+    assert all("origin" in entry for entry in preview["iterations"])
+    assert preview["notes"] and "Simulation executed without launching external binaries." in preview["notes"][0]
+    symbolic_stage = next(stage for stage in result.results["stages"] if stage["name"] == "symbolic_guidance")
+    assert symbolic_stage["details"]["generated_inputs"], "Expected symbolic guidance to produce inputs"
+
+
+def test_orchestrator_hybrid_run_workflow():
+    """Ensure orchestrator can run bounded hybrid workflow loop."""
+    orchestrator = Orchestrator({"fuzzing": {"max_iterations": 10}})
+    request = AnalysisRequest(
+        binary_path="nonexistent_vm_binary.exe",
+        analysis_type=AnalysisType.HYBRID,
+        seed_inputs=[b"seed-run"],
+        options={
+            "target_branches": [0x4000],
+            "run_workflow": True,
+            "run_iterations": 3,
+        },
+    )
+
+    result = asyncio.run(orchestrator.execute_analysis(request))
+
+    run_summary = result.results.get("run_summary")
+    assert run_summary is not None
+    stats = run_summary["stats"]
+    assert stats["iterations_completed"] <= 3
+    assert stats["iterations_completed"] >= 1
+    assert stats["seed_cases"] >= 1
+    assert "iterations" in run_summary and isinstance(run_summary["iterations"], list)
+    assert run_summary["iterations"], "Expected at least one iteration entry"
+    assert all("origin" in entry for entry in run_summary["iterations"])
+    assert run_summary["notes"]
+    assert stats["symbolic_cases"] >= 1
+    assert "symbolic_cases" in stats["new_cases_added"]

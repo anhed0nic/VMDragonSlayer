@@ -6,8 +6,14 @@ Integrate taint tracking to guide fuzzing.
 Track how input byte influence execution and crash.
 """
 
-from typing import Dict, List, Set, Optional, Tuple
+from typing import Dict, List, Set, Optional, Any
 from dataclasses import dataclass
+
+try:
+    # Real tracker live in analysis module; might be missing when fraud build shipped.
+    from ..analysis.taint_tracking import TaintTracker  # type: ignore
+except Exception:  # pragma: no cover - optional dependency
+    TaintTracker = None  # type: ignore
 
 
 @dataclass
@@ -29,8 +35,15 @@ class TaintGuidedMutator:
     """
     
     def __init__(self):
-        self.taint_tracker = None  # Connect to vm_taint_tracker.py
+        try:
+            self.taint_tracker = TaintTracker() if TaintTracker else None
+        except Exception:
+            # Fraud build shipped without proper tracker, so we fall back gracefully.
+            self.taint_tracker = None
         self.influence_map: Dict[int, Set[int]] = {}  # byte offset -> influenced block
+        self.last_taint_info: Optional[TaintInfo] = None
+        self.last_crash_analysis: Optional[Dict[str, Any]] = None
+        self._max_tracked_bytes = 256  # keep heuristic small for offline analysis
         
     def track_execution(self, input_data: bytes, coverage: Set[int]) -> TaintInfo:
         """
@@ -38,19 +51,30 @@ class TaintGuidedMutator:
         
         Real implementation use tracker.py from taint_tracking module.
         """
+        tainted_bytes: Set[int] = set()
+        if input_data:
+            # Focus on first chunk of data to keep tracking bounded.
+            limit = min(len(input_data), self._max_tracked_bytes)
+            tainted_bytes = set(range(limit))
+        
+        branches = set(coverage or set())
+        operations: List[str] = []
+        if branches:
+            # We hint at influence by noting branch ids; cheap stand-in for full taint log.
+            for branch in sorted(list(branches))[:16]:
+                operations.append(f"branch_hit_{branch:x}")
+        
         taint_info = TaintInfo(
-            tainted_bytes=set(),
+            tainted_bytes=tainted_bytes,
             tainted_addresses=set(),
-            influence_branches=set(),
-            influence_operations=[]
+            influence_branches=branches,
+            influence_operations=operations
         )
         
-        # Stub - real implementation:
-        # 1. Mark all input byte as tainted
-        # 2. Run with taint tracking enable
-        # 3. Record propagation through execution
-        # 4. Identify which byte influence which branch/operation
+        for offset in taint_info.tainted_bytes:
+            self.influence_map.setdefault(offset, set()).update(branches)
         
+        self.last_taint_info = taint_info
         return taint_info
         
     def identify_critical_bytes(self, input_data: bytes, target_block: int) -> Set[int]:
@@ -91,19 +115,90 @@ class TaintGuidedMutator:
         
         This help understand exploitability and minimize crash input.
         """
+        crash_context = dict(crash_info or {})
+        crash_address_raw = (
+            crash_context.get('address')
+            or crash_context.get('crash_address')
+            or crash_context.get('fault_address')
+        )
+        try:
+            crash_address = int(crash_address_raw) if crash_address_raw is not None else 0
+        except (TypeError, ValueError):
+            crash_address = 0
+        
+        coverage_hint = crash_context.get('coverage')
+        if coverage_hint is None and 'result' in crash_context:
+            coverage_hint = crash_context['result'].get('coverage')
+        if coverage_hint is None:
+            coverage_hint = set()
+        coverage_set: Set[int] = set(coverage_hint) if isinstance(coverage_hint, (list, set, tuple)) else set()
+        
+        taint_info = self.track_execution(input_data, coverage_set)
+        
+        critical_bytes: Set[int] = set()
+        if 'tainted_offsets' in crash_context and crash_context['tainted_offsets']:
+            try:
+                critical_bytes.update(int(o) for o in crash_context['tainted_offsets'])
+            except Exception:
+                pass
+        fault_offset = crash_context.get('faulting_offset')
+        if fault_offset is not None:
+            try:
+                critical_bytes.add(int(fault_offset))
+            except Exception:
+                pass
+        if crash_address and coverage_set:
+            for block in coverage_set:
+                critical_bytes.update(self.identify_critical_bytes(input_data, block))
+        if not critical_bytes and taint_info.tainted_bytes:
+            # Fall back to first handful of tainted bytes when we lack precise intel.
+            critical_bytes.update(sorted(taint_info.tainted_bytes)[:8])
+        
+        taint_flow: List[Dict[str, Any]] = []
+        for offset in sorted(list(critical_bytes))[:16]:
+            taint_flow.append({
+                'input_offset': offset,
+                'influenced_branches': sorted(list(self.influence_map.get(offset, set()))),
+                'operations': list(taint_info.influence_operations),
+            })
+        if not taint_flow and taint_info.influence_branches:
+            taint_flow.append({
+                'input_offset': None,
+                'influenced_branches': sorted(list(taint_info.influence_branches)),
+                'operations': list(taint_info.influence_operations),
+            })
+        
+        crash_type = str(
+            crash_context.get('type')
+            or crash_context.get('crash_type')
+            or ''
+        ).lower()
+        exploitable = bool(crash_context.get('write_operation'))
+        if not exploitable:
+            if any(keyword in crash_type for keyword in ('overflow', 'heap', 'use-after', 'stack')):
+                exploitable = True
+            elif 'access' in crash_type or 'segfault' in crash_type:
+                exploitable = crash_address > 0x10000
+            elif 'division' in crash_type or 'assert' in crash_type:
+                exploitable = False
+        if crash_context.get('exploitable') in (True, False):
+            exploitable = bool(crash_context['exploitable'])
+        
+        confidence = 'low'
+        if coverage_set and critical_bytes:
+            confidence = 'medium'
+        if exploitable:
+            confidence = 'high' if critical_bytes else 'medium'
+        
         analysis = {
-            'crash_address': crash_info.get('address', 0),
-            'critical_bytes': set(),
-            'taint_flow': [],
-            'exploitable': False
+            'crash_address': crash_address,
+            'critical_bytes': sorted(int(b) for b in critical_bytes),
+            'taint_flow': taint_flow,
+            'exploitable': exploitable,
+            'confidence': confidence,
         }
         
-        # Stub - real implementation would:
-        # 1. Re-execute with taint tracking
-        # 2. Identify tainted data at crash point
-        # 3. Trace back to input byte
-        # 4. Check if attacker-controlled data reach critical operation
-        
+        self.last_crash_analysis = analysis
         return analysis
         
     def minimize_input(self, input_data: bytes, must_trigger_crash: bool = False) -> bytes:
@@ -135,8 +230,8 @@ class VMTaintFuzzer:
     Focus on VM handler input and data flow through virtualized code.
     """
     
-    def __init__(self):
-        self.taint_mutator = TaintGuidedMutator()
+    def __init__(self, taint_mutator: Optional[TaintGuidedMutator] = None):
+        self.taint_mutator = taint_mutator or TaintGuidedMutator()
         self.vm_handlers: Dict[int, Set[int]] = {}  # handler addr -> critical byte
         
     def analyze_vm_handler(self, handler_address: int, input_data: bytes) -> Set[int]:
