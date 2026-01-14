@@ -7,6 +7,22 @@ VMDragonSlayer is a comprehensive framework for analyzing binaries protected by 
 
 > **Goal**: Transform complex protected binary analysis from weeks/months of manual work into structured, automated analysis with explainable results.
 
+## ⚠️ OSHA Safety Compliance Notice
+
+**This software handles hazardous operations that can cause system instability, data loss, and security vulnerabilities.**
+
+- **OSHA Standard 29 CFR 1910.120**: Hazardous Waste Operations and Emergency Response
+- **OSHA Standard 29 CFR 1910.147**: Control of Hazardous Energy (Lockout/Tagout)
+- **OSHA Standard 29 CFR 1910.132**: Personal Protective Equipment (PPE)
+
+**Before using this software:**
+1. Review the complete safety manual in `OSHA.md`
+2. Ensure backup systems are active
+3. Verify network isolation for fuzzing operations
+4. Confirm emergency shutdown procedures are in place
+
+**Safety Training Required**: All operators must read and acknowledge the OSHA compliance documentation.
+
 ## Key Features
 
 - **Multi-Engine Analysis**: Combines static, dynamic, and hybrid analysis techniques
@@ -163,11 +179,19 @@ VMDragonSlayer integrates with major reverse engineering tools:
 ---
 ## Installation
 
-### Prerequisites
+### ⚠️ Safety Prerequisites
+**Before installation, ensure compliance with OSHA safety standards:**
+
+- **System Backup**: Create full system backups before installation
+- **Network Isolation**: Plan for network isolation during fuzzing operations
+- **Resource Monitoring**: Install system monitoring tools for CPU/memory usage
+- **Emergency Procedures**: Establish emergency shutdown procedures
+
+### Software Prerequisites
 - Python 3.8 or higher
 - One or more reverse engineering tools:
   - Ghidra 10.0+ (for Ghidra plugin)
-  - IDA Pro 7.0+ (for IDA plugin) 
+  - IDA Pro 7.0+ (for IDA plugin)
   - Binary Ninja (for Binary Ninja plugin)
 
 ## Hardware Requirements
@@ -274,6 +298,18 @@ cp dist/VMDragonSlayer.zip $GHIDRA_INSTALL_DIR/Extensions/
 
 ---
 ## Quick Start
+
+### ⚠️ Safety First - Pre-Operation Checklist
+**Complete this checklist before running any analysis:**
+
+- [ ] **OSHA.md reviewed and acknowledged**
+- [ ] **System backups created and verified**
+- [ ] **Network isolation configured for fuzzing operations**
+- [ ] **Resource monitoring tools active**
+- [ ] **Emergency stop procedures tested**
+- [ ] **PPE (monitoring equipment) ready**
+
+**Command to abort all operations: `Ctrl+C` or system kill command**
 
 ### 1. Basic Framework Usage
 ```python

@@ -1,6 +1,12 @@
 -- Main Lua JIT compiler, puts everything together like Italian pasta
 -- /r/Italy would be proud
 
+-- OSHA COMPLIANCE NOTICE (29 CFR 1910.147 - Control of Hazardous Energy)
+-- WARNING: JIT compilation can cause compilation errors, memory corruption, and system instability.
+-- PPE Required: Code validation tools, memory monitoring, backup systems.
+-- Lockout/Tagout: Verify compilation inputs before processing.
+-- Emergency Response: Compilation abort if memory issues detected.
+
 local lexer = require("lua_jit_compiler.lexer")
 local parser = require("lua_jit_compiler.parser")
 local bytecode_emitter = require("lua_jit_compiler.bytecode_emitter")

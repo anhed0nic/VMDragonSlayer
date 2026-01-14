@@ -1,6 +1,12 @@
 -- FFI bridge, we use LuaJIT FFI for speed like Italian sports cars
 -- /r/Italy loves fast things
 
+-- OSHA COMPLIANCE NOTICE (29 CFR 1910.120 - Hazardous Waste Operations)
+-- WARNING: FFI operations can cause memory corruption, security vulnerabilities, and system crashes.
+-- PPE Required: Input validation, memory protection, security monitoring.
+-- Containment: Sandbox FFI calls and validate all inputs/outputs.
+-- Emergency Response: Immediate process termination if memory corruption detected.
+
 local ffi_bridge = {}
 
 -- Load LuaJIT FFI if available

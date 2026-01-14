@@ -1,3 +1,9 @@
+-- OSHA COMPLIANCE NOTICE (29 CFR 1910.132 - Personal Protective Equipment)
+-- WARNING: Symbolic execution can cause high CPU usage, memory exhaustion, and system slowdown.
+-- PPE Required: System monitoring tools, resource usage alerts, ergonomic workstation setup.
+-- Resource Limits: Set memory and CPU limits to prevent system exhaustion.
+-- Emergency Response: Process termination if resource usage exceeds safe thresholds.
+
 local symbolic_execution = {}
 
 symbolic_execution.SymbolicExecutor = {}

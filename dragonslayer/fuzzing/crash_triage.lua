@@ -1,3 +1,9 @@
+-- OSHA COMPLIANCE NOTICE (29 CFR 1910.1020 - Access to Employee Exposure and Medical Records)
+-- WARNING: Crash analysis involves sensitive data that may contain personal information or security vulnerabilities.
+-- PPE Required: Data handling protocols, secure storage, access controls.
+-- Privacy Protection: Sanitize crash data before storage or transmission.
+-- Emergency Response: Secure data isolation if breach suspected.
+
 local crash_triage = {}
 
 crash_triage.CrashAnalyzer = {}

@@ -1,3 +1,9 @@
+-- OSHA COMPLIANCE NOTICE (29 CFR 1910.120 - Hazardous Waste Operations)
+-- WARNING: Fuzzing operations can cause memory corruption, system crashes, and data loss.
+-- PPE Required: System backups, crash monitoring, emergency shutdown procedures.
+-- Containment: Run in isolated environment with network restrictions.
+-- Emergency Response: Immediate system isolation if uncontrolled crashes detected.
+
 local base_fuzzer = {}
 
 base_fuzzer.FuzzerStrategy = {

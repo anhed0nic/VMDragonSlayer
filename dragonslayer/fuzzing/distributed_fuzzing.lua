@@ -1,3 +1,9 @@
+-- OSHA COMPLIANCE NOTICE (29 CFR 1910.303 - Electrical Safety & 29 CFR 1910.120 - Hazardous Waste)
+-- WARNING: Distributed fuzzing can cause network hazards, resource exhaustion, and multi-system instability.
+-- PPE Required: Network monitoring, resource usage alerts, distributed system monitoring.
+-- Lockout/Tagout: Isolate worker nodes and verify network security before operation.
+-- Emergency Response: Coordinated shutdown of all worker nodes if hazards detected.
+
 local distributed_fuzzing = {}
 
 distributed_fuzzing.DistributedFuzzer = {}

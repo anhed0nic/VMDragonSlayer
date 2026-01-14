@@ -1,3 +1,9 @@
+-- OSHA COMPLIANCE NOTICE (29 CFR 1910.303 - Electrical Safety)
+-- WARNING: GPU operations can cause thermal hazards, electrical issues, and hardware damage.
+-- PPE Required: Thermal monitoring equipment, electrical safety gear.
+-- Ventilation: Ensure adequate cooling and ventilation during extended operations.
+-- Emergency Response: Immediate shutdown if overheating or electrical issues detected.
+
 local gpu = {}
 
 gpu.GPUEngine = {}

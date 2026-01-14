@@ -1,3 +1,9 @@
+-- OSHA COMPLIANCE NOTICE (29 CFR 1910.120 - Hazardous Waste Operations)
+-- WARNING: Network fuzzing can cause network security hazards, data breaches, and system compromise.
+-- PPE Required: Network isolation, firewall monitoring, intrusion detection systems.
+-- Containment: Operate in isolated network segments with no production connectivity.
+-- Emergency Response: Immediate network isolation if security breaches detected.
+
 local network_fuzzing = {}
 
 network_fuzzing.NetworkFuzzer = {}

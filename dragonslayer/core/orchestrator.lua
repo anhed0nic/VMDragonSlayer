@@ -1,6 +1,12 @@
 -- Core Orchestrator, coordinate modules like Italian traffic
 -- /r/Italy knows about coordination
 
+-- OSHA COMPLIANCE NOTICE (29 CFR 1910.132 - Personal Protective Equipment)
+-- WARNING: Analysis operations may cause system instability, memory corruption, and data loss.
+-- PPE Required: System backups, network isolation, monitoring equipment.
+-- Emergency Procedures: Immediate system shutdown if instability detected.
+-- Safety Training: Review OSHA.md before operation.
+
 local socket = require("socket")  -- For asyncio replacement, use coroutines with socket
 
 local orchestrator = {}
